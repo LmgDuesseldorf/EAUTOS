@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-Auto Retrofit – Lohnt sich der Umbau?</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0c0f;--bg2:#111318;--bg3:#181b22;
+    --green:#00e87a;--green2:#00b85e;--amber:#f5a623;--red:#ff4d4d;--blue:#4d9fff;
+    --text:#e8eaf0;--muted:#6b7280;--border:rgba(255,255,255,0.07);
+    --pad-x:clamp(20px,6vw,80px);--pad-y:clamp(16px,4vh,60px);
+    --gap:clamp(8px,1.4vw,20px);--r:clamp(4px,0.5vw,8px);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;user-select:none}
+  body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.5}
+  #progress-bar{position:fixed;top:0;left:0;height:2px;background:var(--green);box-shadow:0 0 12px var(--green);transition:width .4s ease;z-index:200}
+  #slides{width:100%;height:100vh;position:relative}
+  .slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:var(--pad-y) var(--pad-x) calc(var(--pad-y) + 52px);opacity:0;transform:translateX(60px);transition:opacity .5s ease,transform .5s ease;pointer-events:none;overflow:hidden}
+  .slide.active{opacity:1;transform:translateX(0);pointer-events:all}
+  .slide.exit{opacity:0;transform:translateX(-60px)}
+  #nav{position:fixed;bottom:clamp(14px,2.5vh,32px);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:clamp(8px,1.2vw,16px);z-index:100}
+  .nav-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:clamp(7px,.9vh,10px) clamp(12px,1.8vw,28px);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:clamp(10px,1vw,12px);letter-spacing:1px;cursor:pointer;transition:all .2s}
+  .nav-btn:hover{background:var(--green);color:#000;border-color:var(--green)}
+  .nav-btn:disabled{opacity:.3;pointer-events:none}
+  #slide-counter{font-family:'JetBrains Mono',monospace;font-size:clamp(9px,.9vw,11px);color:var(--muted);min-width:52px;text-align:center}
+  #slide-num{position:fixed;top:clamp(12px,1.8vh,24px);right:clamp(14px,2vw,32px);font-family:'JetBrains Mono',monospace;font-size:clamp(9px,.9vw,11px);color:var(--muted);z-index:100}
+  .tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:clamp(8px,.8vw,10px);letter-spacing:2px;padding:3px 9px;border:1px solid var(--green);color:var(--green);border-radius:2px;text-transform:uppercase;margin-bottom:clamp(8px,1.2vh,18px)}
+  h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,6.5vw,96px);line-height:.95;letter-spacing:1px}
+  h2{font-family:'Bebas Neue',sans-serif;font-size:clamp(24px,4vw,62px);letter-spacing:1px;line-height:1}
+  .accent{color:var(--green)}.accent-amber{color:var(--amber)}
+  .body-text{font-size:clamp(12px,1.3vw,16px);line-height:1.7;color:#adb5c7;max-width:700px;margin-top:clamp(10px,1.5vh,20px)}
+  /* CLICKABLE */
+  .clickable{cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease !important;position:relative}
+  .clickable:hover{transform:translateY(-3px) !important;border-color:rgba(0,232,122,.4) !important;box-shadow:0 8px 32px rgba(0,232,122,.1)}
+  .clickable::after{content:'+ INFO';position:absolute;bottom:8px;right:10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--green);opacity:0;transition:opacity .18s;pointer-events:none}
+  .clickable:hover::after{opacity:.8}
+  /* MODAL */
+  #modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity .25s ease}
+  #modal-overlay.open{opacity:1;pointer-events:all}
+  #modal-box{background:var(--bg2);border:1px solid rgba(0,232,122,.25);border-radius:12px;width:min(640px,92vw);max-height:85vh;overflow-y:auto;padding:clamp(22px,3.5vw,48px);transform:translateY(28px) scale(.97);transition:transform .3s cubic-bezier(.22,1,.36,1);position:relative;scrollbar-width:thin;scrollbar-color:var(--green) var(--bg3)}
+  #modal-overlay.open #modal-box{transform:translateY(0) scale(1)}
+  #modal-close{position:absolute;top:14px;right:14px;background:none;border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;padding:5px 12px;border-radius:4px;cursor:pointer;transition:all .15s;z-index:10}
+  #modal-close:hover{background:var(--green);color:#000;border-color:var(--green)}
+  .modal-tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--green);text-transform:uppercase;margin-bottom:10px}
+  #modal-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(22px,3vw,38px);letter-spacing:1px;margin-bottom:14px;line-height:1.05;padding-right:60px}
+  #modal-body{font-size:clamp(13px,1.3vw,15px);line-height:1.75;color:#adb5c7}
+  #modal-body p{margin-bottom:8px}
+  #modal-body strong{color:var(--text)}
+  #modal-body ul{padding-left:18px;margin-top:8px;display:flex;flex-direction:column;gap:6px}
+  #modal-body li{font-size:clamp(12px,1.2vw,14px);line-height:1.55}
+  .modal-divider{height:1px;background:var(--border);margin:14px 0}
+  .modal-stat-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .modal-stat{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px 14px;flex:1;min-width:90px}
+  .modal-stat-val{font-family:'Bebas Neue',sans-serif;font-size:clamp(18px,2vw,26px);color:var(--green)}
+  .modal-stat-lbl{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.3}
+  .modal-quote{border-left:3px solid var(--green);padding:10px 14px;margin-top:12px;font-style:italic;color:#8b95a8;font-size:clamp(12px,1.2vw,14px);line-height:1.65;background:rgba(0,232,122,.03);border-radius:0 4px 4px 0}
+  .modal-table{width:100%;border-collapse:collapse;font-size:clamp(11px,1.1vw,13px);margin-top:10px}
+  .modal-table th{text-align:left;padding:7px 4px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border)}
+  .modal-table td{padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.04)}
+  .modal-table th:not(:first-child),.modal-table td:not(:first-child){text-align:center}
+  /* SLIDE 0 */
+  #slide-0{background:radial-gradient(ellipse 60% 50% at 80% 50%,rgba(0,232,122,.07) 0%,transparent 70%),var(--bg);align-items:flex-start}
+  .cover-eyebrow{font-family:'JetBrains Mono',monospace;font-size:clamp(9px,.9vw,11px);letter-spacing:3px;color:var(--green);text-transform:uppercase;margin-bottom:clamp(12px,2vh,24px);animation:fadeUp .6s .2s both}
+  #slide-0 h1{animation:fadeUp .6s .35s both}
+  .cover-sub{font-size:clamp(13px,1.5vw,18px);color:#8b95a8;margin-top:clamp(10px,1.8vh,24px);max-width:min(560px,70vw);line-height:1.6;animation:fadeUp .6s .5s both}
+  .cover-meta{display:flex;gap:clamp(14px,2.5vw,32px);margin-top:clamp(18px,3.5vh,48px);animation:fadeUp .6s .65s both;flex-wrap:wrap}
+  .meta-item{display:flex;flex-direction:column;gap:4px}
+  .meta-label{font-family:'JetBrains Mono',monospace;font-size:clamp(8px,.8vw,10px);letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+  .meta-value{font-size:clamp(12px,1.2vw,15px);font-weight:500}
+  .cover-line{position:absolute;right:clamp(40px,5vw,80px);top:50%;transform:translateY(-50%);width:1px;height:60%;background:linear-gradient(to bottom,transparent,var(--green),transparent);opacity:.3;animation:fadeIn 1s .8s both}
+  /* SLIDE 1 */
+  #slide-1{align-items:flex-start}
+  .two-col{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--gap);width:100%;max-width:min(960px,100%);margin-top:clamp(10px,1.8vh,22px)}
+  .info-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:clamp(12px,1.8vw,22px);position:relative;overflow:hidden}
+  .info-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green),transparent)}
+  .card-icon{font-size:clamp(18px,2vw,24px);margin-bottom:clamp(6px,1vh,10px)}
+  .card-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(15px,1.6vw,20px);letter-spacing:1px;margin-bottom:5px}
+  .card-body{font-size:clamp(11px,1vw,13px);color:#8b95a8;line-height:1.6}
+  /* SLIDE 2 */
+  #slide-2{align-items:flex-start}
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);width:100%;max-width:min(960px,100%);margin-top:clamp(10px,1.8vh,22px)}
+  .stat-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:clamp(10px,1.5vw,20px) clamp(10px,1.2vw,16px);display:flex;flex-direction:column;gap:4px}
+  .stat-box:first-child:hover{border-color:rgba(0,232,122,.4)}
+  .stat-num{font-family:'Bebas Neue',sans-serif;font-size:clamp(26px,3.8vw,48px);line-height:1;color:var(--green)}
+  .stat-unit{font-family:'JetBrains Mono',monospace;font-size:clamp(10px,1vw,13px);color:var(--green);margin-left:3px}
+  .stat-label{font-size:clamp(11px,1vw,13px);color:var(--muted)}
+  .stat-detail{font-size:clamp(9px,.9vw,11px);color:#4b5563;margin-top:2px}
+  .tech-list{margin-top:clamp(7px,1.1vh,13px);display:flex;flex-direction:column;gap:clamp(4px,.7vh,7px);width:100%;max-width:min(960px,100%)}
+  .tech-item{display:flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:clamp(7px,1vh,11px) clamp(10px,1.3vw,16px);font-size:clamp(11px,1vw,13px)}
+  .tech-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+  /* SLIDE 3 */
+  #slide-3{align-items:flex-start}
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);width:100%;max-width:min(960px,100%);margin-top:clamp(10px,1.8vh,22px)}
+  .compare-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:clamp(14px,1.8vw,24px) clamp(12px,1.5vw,20px);position:relative}
+  .compare-card.highlight{border-color:var(--border)}
+  .compare-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(16px,1.7vw,22px);letter-spacing:1px;margin-bottom:clamp(8px,1.4vh,16px)}
+  .compare-row{display:flex;justify-content:space-between;align-items:center;padding:clamp(5px,.7vh,8px) 0;border-bottom:1px solid var(--border);font-size:clamp(11px,1vw,13px)}
+  .compare-row:last-child{border-bottom:none}
+  .compare-row .label{color:var(--muted)}
+  .compare-row .val{font-weight:600;font-family:'JetBrains Mono',monospace;font-size:clamp(9px,.9vw,12px)}
+  .val-green{color:var(--green)}.val-amber{color:var(--amber)}.val-red{color:var(--red)}
+  /* SLIDE 4 */
+  #slide-4{align-items:flex-start}
+  .co2-visual{display:flex;gap:var(--gap);margin-top:clamp(10px,1.8vh,22px);width:100%;max-width:min(960px,100%)}
+  .co2-bar-wrap{cursor:pointer;padding:clamp(7px,1vh,10px) clamp(8px,1vw,12px);border-radius:var(--r);border:1px solid transparent;transition:border-color .18s,box-shadow .18s}
+  .co2-bar-wrap:hover{border-color:rgba(0,232,122,.3);box-shadow:0 4px 20px rgba(0,232,122,.07)}
+  .co2-label-top{font-family:'JetBrains Mono',monospace;font-size:clamp(8px,.8vw,10px);color:var(--muted);margin-bottom:5px;letter-spacing:1px;text-transform:uppercase}
+  .co2-bar-track{background:var(--bg3);border-radius:4px;height:clamp(30px,4.5vh,46px);position:relative;overflow:hidden;border:1px solid var(--border)}
+  .co2-bar-fill{height:100%;border-radius:4px 0 0 4px;display:flex;align-items:center;padding-left:10px;font-family:'Bebas Neue',sans-serif;font-size:clamp(13px,1.6vw,20px);transition:width 1.2s cubic-bezier(.22,1,.36,1)}
+  .co2-bar-fill.green{background:linear-gradient(90deg,var(--green2),var(--green));color:#000}
+  .co2-bar-fill.amber{background:linear-gradient(90deg,#c47a0a,var(--amber));color:#000}
+  .co2-bar-fill.red-fill{background:linear-gradient(90deg,#c02020,var(--red));color:#fff}
+  .insights{flex:0 0 clamp(140px,20vw,270px);display:flex;flex-direction:column;gap:clamp(6px,.9vh,10px)}
+  .insight-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:clamp(9px,1.1vh,13px) clamp(10px,1.1vw,15px)}
+  .insight-title{font-size:clamp(8px,.8vw,10px);color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+  .insight-val{font-family:'Bebas Neue',sans-serif;font-size:clamp(16px,2vw,24px);color:var(--green)}
+  .insight-sub{font-size:clamp(10px,.9vw,12px);color:#6b7280;margin-top:2px;line-height:1.4}
+  /* SLIDE 5 */
+  #slide-5{align-items:flex-start;padding-top:clamp(8px,1.2vh,16px)}
+  .challenge-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--gap);width:100%;max-width:min(960px,100%);margin-top:clamp(8px,1.4vh,20px)}
+  .challenge-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:clamp(10px,1.5vw,18px) clamp(10px,1.3vw,16px);display:flex;gap:clamp(8px,1.1vw,13px);align-items:flex-start}
+  .ch-icon{width:clamp(26px,2.8vw,34px);height:clamp(26px,2.8vw,34px);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:clamp(13px,1.4vw,16px);flex-shrink:0;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.2)}
+  .ch-title{font-weight:600;font-size:clamp(12px,1.2vw,14px);margin-bottom:4px}
+  .ch-body{font-size:clamp(11px,1vw,13px);color:#6b7280;line-height:1.5}
+  /* SLIDE 6 */
+  #slide-6{background:radial-gradient(ellipse 50% 60% at 50% 50%,rgba(0,232,122,.06) 0%,transparent 70%);text-align:center}
+  .anim-67{position:absolute;bottom:clamp(60px,9vh,120px);left:50%;transform:translateX(-50%);font-family:'Bebas Neue',sans-serif;font-size:clamp(50px,7.5vw,90px);line-height:1;display:flex;align-items:flex-end;justify-content:center;gap:clamp(32px,5.5vw,80px)}
+  .anim-67 .digit{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .anim-67 .d6{color:var(--green);display:inline-block;animation:bounce6 1s ease-in-out infinite}
+  .anim-67 .d7{color:var(--text);display:inline-block;animation:bounce7 1s ease-in-out infinite}
+  .anim-67 .hand{font-size:clamp(24px,3.5vw,44px);line-height:1;display:block}
+  .anim-67 .hand6{animation:bounce6 1s ease-in-out infinite}
+  .anim-67 .hand7{animation:bounce7 1s ease-in-out infinite}
+  @keyframes bounce6{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+  @keyframes bounce7{0%,100%{transform:translateY(0)}50%{transform:translateY(16px)}}
+  .verdict-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);width:100%;max-width:min(820px,100%);margin-top:clamp(14px,2.2vh,32px)}
+  .verdict-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:clamp(12px,1.6vw,20px) clamp(10px,1.3vw,16px);display:flex;flex-direction:column;align-items:center;gap:clamp(4px,.7vh,8px)}
+  .verdict-icon{font-size:clamp(20px,2.4vw,26px)}
+  .verdict-label{font-family:'Bebas Neue',sans-serif;font-size:clamp(14px,1.5vw,18px);letter-spacing:1px}
+  .verdict-sub{font-size:clamp(10px,.9vw,12px);color:var(--muted);text-align:center;line-height:1.5}
+  .source-tag{margin-top:clamp(12px,1.8vh,26px);font-family:'JetBrains Mono',monospace;font-size:clamp(9px,.85vw,10px);color:var(--muted);letter-spacing:1px}
+  .source-tag a{color:var(--green);text-decoration:none}
+  .source-tag a:hover{text-decoration:underline}
+  .game-link{display:inline-block;margin-top:12px;padding:9px 22px;background:var(--bg3);border:1px solid var(--green);border-radius:4px;color:var(--green);font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:1px;text-decoration:none;transition:all .2s}
+  .game-link:hover{background:var(--green);color:#000}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .slide.active .stat-box,.slide.active .info-card,.slide.active .compare-card,.slide.active .challenge-item,.slide.active .verdict-item,.slide.active .tech-item,.slide.active .insight-card{animation:fadeUp .4s both}
+  .slide.active .stat-box:nth-child(1),.slide.active .info-card:nth-child(1),.slide.active .compare-card:nth-child(1),.slide.active .challenge-item:nth-child(1),.slide.active .verdict-item:nth-child(1),.slide.active .tech-item:nth-child(1),.slide.active .insight-card:nth-child(1){animation-delay:.1s}
+  .slide.active .stat-box:nth-child(2),.slide.active .info-card:nth-child(2),.slide.active .compare-card:nth-child(2),.slide.active .challenge-item:nth-child(2),.slide.active .verdict-item:nth-child(2),.slide.active .tech-item:nth-child(2),.slide.active .insight-card:nth-child(2){animation-delay:.2s}
+  .slide.active .stat-box:nth-child(3),.slide.active .challenge-item:nth-child(3),.slide.active .verdict-item:nth-child(3),.slide.active .tech-item:nth-child(3),.slide.active .insight-card:nth-child(3){animation-delay:.3s}
+  .slide.active .stat-box:nth-child(4),.slide.active .challenge-item:nth-child(4),.slide.active .tech-item:nth-child(4){animation-delay:.4s}
+  #kb-hint{position:fixed;bottom:clamp(14px,2.5vh,36px);right:clamp(14px,2.5vw,36px);font-family:'JetBrains Mono',monospace;font-size:clamp(9px,.85vw,10px);color:var(--muted);letter-spacing:1px;opacity:.5}
+  #click-hint{position:fixed;top:clamp(12px,1.8vh,24px);left:clamp(14px,2.5vw,32px);font-family:'JetBrains Mono',monospace;font-size:clamp(9px,.85vw,10px);color:var(--green);letter-spacing:1px;opacity:.65}
+  /* MOBILE */
+  @media(max-width:600px){
+    #kb-hint{display:none}
+    .cover-line{display:none}
+    .two-col,.compare-grid,.challenge-grid{grid-template-columns:1fr}
+    .verdict-grid{grid-template-columns:1fr}
+    .verdict-item{flex-direction:row;text-align:left}
+    .co2-visual{flex-direction:column}
+    .insights{flex:none;display:grid;grid-template-columns:repeat(3,1fr)}
+    .anim-67{position:relative;bottom:auto;left:auto;transform:none;margin:clamp(10px,2vh,18px) auto 0}
+  }
+</style>
+</head>
+<body>
+<div id="progress-bar"></div>
+<div id="slide-num"></div>
+<div id="click-hint">↗ KARTEN ANKLICKEN FÜR DETAILS</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <button id="modal-close">✕ SCHLIESSEN</button>
+    <div class="modal-tag" id="modal-tag"></div>
+    <div id="modal-title"></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div id="slides">
+
+  <!-- SLIDE 0 COVER -->
+  <div class="slide active" id="slide-0">
+    <div class="cover-eyebrow">▶ Geladen Podcast · März 2026</div>
+    <h1>Warum neue<br><span class="accent">E-Autos</span><br>keinen Sinn<br>mehr machen (ERGEBEN)</h1>
+    <p class="cover-sub">Der Verbrenner wird zum Elektroauto – TÜV-zugelassenes Retrofit als nachhaltige Alternative zum Neukauf.</p>
+    <div class="cover-meta">
+      <div class="meta-item"><span class="meta-label">Gäste</span><span class="meta-value">Rolf Behling · e-Revolt</span></div>
+      <div class="meta-item"><span class="meta-label">&nbsp;</span><span class="meta-value">Dr. Michael Krail · Fraunhofer ISI</span></div>
+      <div class="meta-item"><span class="meta-label">Länge</span><span class="meta-value">39 min</span></div>
+    </div>
+    <div class="cover-line"></div>
+  </div>
+
+  <!-- SLIDE 1 -->
+  <div class="slide" id="slide-1">
+    <div class="tag">01 — Konzept</div>
+    <h2>Was ist <span class="accent">E-Retrofit?</span></h2>
+    <div class="two-col" style="margin-top:24px">
+      <div class="info-card clickable" data-modal="umbau">
+        <div class="card-icon">🔧</div>
+        <div class="card-title">Der Umbau</div>
+        <div class="card-body">Ein VW Golf 7 wird in einem Tag zum E-Auto. Motor raus, Akku rein – Plug-and-Play von e-Revolt.</div>
+      </div>
+      <div class="info-card clickable" data-modal="tuev">
+        <div class="card-icon">✅</div>
+        <div class="card-title">TÜV-Zulassung</div>
+        <div class="card-body">Offizielle TÜV-Zulassung, straßenzugelassen und alle Sicherheitsanforderungen erfüllt.</div>
+      </div>
+      <div class="info-card clickable" data-modal="warum">
+        <div class="card-icon">♻️</div>
+        <div class="card-title">Warum Retrofit?</div>
+        <div class="card-body">Bestehende Fahrzeugstruktur weiternutzen statt neu produzieren. Graue Energie bereits investiert.</div>
+      </div>
+      <div class="info-card clickable" data-modal="zielgruppe">
+        <div class="card-icon">🎯</div>
+        <div class="card-title">Zielgruppe</div>
+        <div class="card-body">Ideal für treue Fahrzeughalter mit gutem Karosserie-Zustand und Kurzstrecken-Bedarf.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide" id="slide-2">
+    <div class="tag">02 — Technik</div>
+    <h2>Technische <span class="accent">Eckdaten</span></h2>
+    <div class="stat-grid">
+      <div class="stat-box clickable" data-modal="batterie">
+        <div><span class="stat-num">45</span><span class="stat-unit">kWh</span></div>
+        <div class="stat-label">Batteriekapazität</div>
+        <div class="stat-detail">LFP-Technologie</div>
+      </div>
+      <div class="stat-box clickable" data-modal="reichweite">
+        <div><span class="stat-num">~250</span><span class="stat-unit">km</span></div>
+        <div class="stat-label">Reichweite</div>
+        <div class="stat-detail">Realistischer Alltagswert</div>
+      </div>
+      <div class="stat-box clickable" data-modal="umbauzeit">
+        <div><span class="stat-num">1</span><span class="stat-unit">Tag</span></div>
+        <div class="stat-label">Umbauzeit</div>
+        <div class="stat-detail">Plug-and-Play-Konzept</div>
+      </div>
+    </div>
+    <div class="tech-list">
+      <div class="tech-item clickable" data-modal="lfp"><div class="tech-dot"></div><strong>Batterie:</strong>&nbsp;LFP vs. NMC – Warum Lithium-Eisenphosphat?</div>
+      <div class="tech-item clickable" data-modal="komponenten"><div class="tech-dot"></div><strong>Komponenten:</strong>&nbsp;E-Motor, Inverter, BMS und Steuergeräte im Überblick</div>
+      <div class="tech-item clickable" data-modal="crash"><div class="tech-dot"></div><strong>Crash-Sicherheit:</strong>&nbsp;Batterie-Platzierung nach TÜV-Auflagen</div>
+      <div class="tech-item clickable" data-modal="canbus"><div class="tech-dot"></div><strong>Fahrzeugelektronik:</strong>&nbsp;CAN-Bus-Integration – die versteckte Komplexität</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide" id="slide-3">
+    <div class="tag">03 — Wirtschaftlichkeit</div>
+    <h2>Retrofit vs. <span class="accent">Neukauf</span></h2>
+    <div class="compare-grid">
+      <div class="compare-card highlight clickable" data-modal="kosten-retrofit">
+        <div class="compare-title">🔋 Retrofit</div>
+        <div class="compare-row"><span class="label">Umbaukosten</span><span class="val val-green">12.000–15.000 €</span></div>
+        <div class="compare-row"><span class="label">Fahrzeugwert vorher</span><span class="val">~3.000–8.000 €</span></div>
+        <div class="compare-row"><span class="label">Gesamtinvestition</span><span class="val val-amber">~15.000–23.000 €</span></div>
+        <div class="compare-row"><span class="label">CO₂ Herstellung</span><span class="val val-green">Sehr gering</span></div>
+        <div class="compare-row"><span class="label">Amortisation</span><span class="val val-green">Günstiger Betrieb</span></div>
+      </div>
+      <div class="compare-card clickable" data-modal="kosten-neu">
+        <div class="compare-title">🚗 Neues E-Auto</div>
+        <div class="compare-row"><span class="label">Einstiegspreis</span><span class="val val-red">ab ~25.000 €</span></div>
+        <div class="compare-row"><span class="label">Mittelklasse</span><span class="val">35.000–50.000 €</span></div>
+        <div class="compare-row"><span class="label">Gesamtinvestition</span><span class="val val-red">25.000–50.000 €</span></div>
+        <div class="compare-row"><span class="label">CO₂ Herstellung</span><span class="val val-red">Hoch (neue Batterie)</span></div>
+        <div class="compare-row"><span class="label">Förderung 2026</span><span class="val val-amber">Gering / keine</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 -->
+  <div class="slide" id="slide-4">
+    <div class="tag">04 — Nachhaltigkeit</div>
+    <h2>CO₂ <span class="accent">Bilanz</span> im Vergleich</h2>
+    <div class="co2-visual">
+      <div style="flex:1;display:flex;flex-direction:column;gap:12px;margin-top:18px">
+        <div class="co2-bar-wrap clickable" data-modal="co2-retrofit">
+          <div class="co2-label-top">Retrofit (Golf 7 umgebaut)</div>
+          <div class="co2-bar-track"><div class="co2-bar-fill green" style="width:30%">~30%</div></div>
+        </div>
+        <div class="co2-bar-wrap clickable" data-modal="co2-neu">
+          <div class="co2-label-top">Neues E-Auto (inkl. Produktion)</div>
+          <div class="co2-bar-track"><div class="co2-bar-fill amber" style="width:65%">~65%</div></div>
+        </div>
+        <div class="co2-bar-wrap clickable" data-modal="co2-verbrenner">
+          <div class="co2-label-top">Neuer Verbrenner (Lebenszyklus)</div>
+          <div class="co2-bar-track"><div class="co2-bar-fill red-fill" style="width:100%">100% (Referenz)</div></div>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:2px">Relative Darstellung Lebenszyklusemissionen · Quelle: Fraunhofer ISI · Balken anklicken für Details</p>
+      </div>
+      <div class="insights">
+        <div class="insight-card clickable" data-modal="graue-energie">
+          <div class="insight-title">Vorteil Retrofit</div>
+          <div class="insight-val">Kein</div>
+          <div class="insight-sub">Neubau-CO₂ für Karosserie & Fahrwerk</div>
+        </div>
+        <div class="insight-card clickable" data-modal="strommix">
+          <div class="insight-title">Schlüsselfaktor</div>
+          <div class="insight-val">Strom-Mix</div>
+          <div class="insight-sub">Je grüner, desto besser die Bilanz</div>
+        </div>
+        <div class="insight-card clickable" data-modal="fraunhofer">
+          <div class="insight-title">Wissenschaft</div>
+          <div class="insight-val">Fraunhofer</div>
+          <div class="insight-sub">Dr. Krail (ISI) bestätigt Retrofit-Vorteil</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5 -->
+  <div class="slide" id="slide-5">
+    <div class="tag">05 — Herausforderungen</div>
+    <div class="anim-67">
+      <div class="digit">
+        <span class="d6">6</span>
+        <span class="hand hand6">🤚</span>
+      </div>
+      <div class="digit">
+        <span class="d7">7</span>
+        <span class="hand hand7">🤚</span>
+      </div>
+    </div>
+    <h2>Wo liegt der <span class="accent-amber">Haken?</span></h2>
+    <div class="challenge-grid">
+      <div class="challenge-item clickable" data-modal="elektronik">
+        <div class="ch-icon">🔌</div>
+        <div><div class="ch-title">Fahrzeugelektronik</div><div class="ch-body">CAN-Bus-Integration ist komplex. Jede Modellreihe braucht individuelle Anpassung.</div></div>
+      </div>
+      <div class="challenge-item clickable" data-modal="zulassung">
+        <div class="ch-icon">🛡️</div>
+        <div><div class="ch-title">TÜV & Zulassung</div><div class="ch-body">Aufwendiger Prozess, aktuell nur wenige Fahrzeugtypen zertifiziert.</div></div>
+      </div>
+      <div class="challenge-item clickable" data-modal="crashsicherheit">
+        <div class="ch-icon">💥</div>
+        <div><div class="ch-title">Crashsicherheit</div><div class="ch-body">Batterieverbaupositionen unterliegen strengen Auflagen.</div></div>
+      </div>
+      <div class="challenge-item clickable" data-modal="skalierung">
+        <div class="ch-icon">📉</div>
+        <div><div class="ch-title">Skalierung</div><div class="ch-body">Nischenmarkt ohne Skaleneffekte – hohe Kosten, begrenzte Werkstätten.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6 -->
+  <div class="slide" id="slide-6">
+    <div class="tag">06 — Fazit</div>
+    <h2>Lohnt sich <span class="accent">Retrofit?</span> (ERGEBEN)</h2>
+    <div class="verdict-grid">
+      <div class="verdict-item clickable" data-modal="fazit-co2">
+        <div class="verdict-icon">🌱</div>
+        <div class="verdict-label" style="color:var(--green)">CO₂: Ja</div>
+        <div class="verdict-sub">Deutlich bessere Ökobilanz als ein neues E-Auto</div>
+      </div>
+      <div class="verdict-item clickable" data-modal="fazit-kosten">
+        <div class="verdict-icon">💶</div>
+        <div class="verdict-label" style="color:var(--amber)">Kosten: Bedingt</div>
+        <div class="verdict-sub">Günstiger als Neuwagen, aber kein Schnäppchen</div>
+      </div>
+      <div class="verdict-item clickable" data-modal="fazit-technik">
+        <div class="verdict-icon">🔧</div>
+        <div class="verdict-label" style="color:var(--blue)">Technik: Reif</div>
+        <div class="verdict-sub">TÜV-zugelassen, für Vielfahrer noch begrenzt</div>
+      </div>
+    </div>
+    <p class="body-text" style="text-align:center;max-width:680px;margin-top:20px;font-size:15px">Retrofit ist <strong>kein Massenprodukt</strong> – aber eine echte Alternative für Halter, die ihr Fahrzeug lieben, umweltbewusst handeln und kein neues Auto finanzieren möchten.</p>
+    <p class="source-tag">Quelle: <a href="https://youtu.be/ZiU-f74rAFw" target="_blank">Geladen Podcast · Batteriepodcast zur Energiewende</a> &nbsp;·&nbsp; Produziert vom KIT</p>
+    <a href="https://slowroads.io" target="_blank" class="game-link">🏎️ &nbsp;AUTO MINIGAME SPIELEN</a>
+  </div>
+</div>
+
+<nav id="nav">
+  <button class="nav-btn" id="btn-prev" disabled>← ZURÜCK</button>
+  <span id="slide-counter">1 / 7</span>
+  <button class="nav-btn" id="btn-next">WEITER →</button>
+</nav>
+<div id="kb-hint">← → PFEILTASTEN</div>
+
+<script>
+const MODALS={umbau:{tag:"Konzept · Umbau",title:"Der Umbau im Detail",body:`<p>Das Unternehmen <strong>e-Revolt</strong> hat ein <strong>Plug-and-Play-Retrofit-System</strong> entwickelt. Der Verbrennungsmotor, Getriebe und Tank werden ausgebaut – an ihre Stelle treten ein Elektromotor, Inverter, 45-kWh-Batterie und Batterie-Management-System (BMS).</p><div class="modal-divider"></div><p>Der Umbau ist speziell für den <strong>VW Golf 7</strong> entwickelt und dauert lediglich <strong>einen einzigen Werktag</strong>. Die Komponenten sind so vorkonfiguriert, dass sie ohne aufwendige Einzelanpassungen eingebaut werden können.</p><div class="modal-stat-row"><div class="modal-stat"><div class="modal-stat-val">1 Tag</div><div class="modal-stat-lbl">Umbaudauer</div></div><div class="modal-stat"><div class="modal-stat-val">Golf 7</div><div class="modal-stat-lbl">Aktuelles Modell</div></div><div class="modal-stat"><div class="modal-stat-val">45 kWh</div><div class="modal-stat-lbl">Batteriekapazität</div></div></div>`},tuev:{tag:"Konzept · Zulassung",title:"TÜV-Zulassung: Was steckt dahinter?",body:`<p>Eine der größten Hürden für Retrofit ist die offizielle Straßenzulassung. e-Revolt hat diese Hürde genommen: Das System besitzt eine <strong>TÜV-Zulassung</strong> und darf legal auf europäischen Straßen bewegt werden.</p><div class="modal-divider"></div><p>Der Zulassungsprozess umfasst Tests zu:</p><ul><li><strong>Crashsicherheit</strong> der Batterie und Einbauposition</li><li><strong>EMV-Verträglichkeit</strong> (elektromagnetische Verträglichkeit)</li><li><strong>Bremsverhalten</strong> und Rekuperations-Integration</li><li><strong>Hochvolt-Sicherheit</strong> für Werkstätten und Rettungskräfte</li></ul><div class="modal-divider"></div><div class="modal-quote">Das Zulassungsverfahren ist aufwendig und teuer – aktuell gibt es es nur für den Golf 7. Weitere Modelle sollen folgen.</div>`},warum:{tag:"Konzept · Nachhaltigkeit",title:"Warum Retrofit ökologisch sinnvoll ist",body:`<p>Die Produktion eines neuen Fahrzeugs verursacht enorme Mengen CO₂ – allein eine neue 60-kWh-Batterie schlägt mit <strong>8–12 Tonnen CO₂</strong> zu Buche. Beim Retrofit entfällt dieser Aufwand für Karosserie, Rahmen, Fahrwerk und Innenraum komplett.</p><div class="modal-divider"></div><p>Das Konzept der <strong>grauen Energie</strong> ist hier entscheidend: Der Golf 7 hat in seiner Herstellung bereits viel Energie verbraucht. Diese Energie ist investiert – und wird beim Retrofit weiter genutzt statt verschwendet.</p><div class="modal-stat-row"><div class="modal-stat"><div class="modal-stat-val">~70%</div><div class="modal-stat-lbl">CO₂-Einsparung ggü. Neuwagen-Produktion</div></div><div class="modal-stat"><div class="modal-stat-val">0 kg</div><div class="modal-stat-lbl">Neue Karosserie-Emissionen</div></div></div>`},zielgruppe:{tag:"Konzept · Zielgruppe",title:"Für wen lohnt sich Retrofit?",body:`<p>Retrofit ist nicht für jeden der richtige Weg. Ideal geeignet sind Menschen, die:</p><ul><li>Ihrem Fahrzeug emotional verbunden sind</li><li>Ein Auto mit <strong>gutem Karosserie-Zustand</strong> besitzen, aber verschlissenem Motor</li><li>Überwiegend <strong>Kurzstrecken bis 200 km</strong> fahren</li><li>Kein neues Auto finanzieren können oder wollen</li><li>Besonders umweltbewusst handeln wollen</li></ul><div class="modal-divider"></div><p>Für Vielfahrer mit täglich über 300 km ist das System aktuell noch nicht optimal – hier fehlt die Reichweite moderner Neuwagen.</p>`},batterie:{tag:"Technik · Batterie",title:"45 kWh Batterie: LFP-Technologie",body:`<p>Die 45-kWh-Batterie nutzt <strong>Lithium-Eisenphosphat (LFP)</strong>-Zellen – bewusst anders als die NMC-Batterien in den meisten neuen E-Autos.</p><div class="modal-divider"></div><p><strong>Vorteile von LFP:</strong></p><ul><li>Höhere Lebensdauer (über 3.000 Ladezyklen)</li><li>Kein Kobalt – ethisch und preislich vorteilhaft</li><li>Geringere Brandgefahr durch thermische Stabilität</li><li>Geringerer Kapazitätsverlust im Alter</li></ul><div class="modal-divider"></div><p><strong>Nachteil:</strong> LFP hat eine geringere Energiedichte als NMC. Gleiche Kapazität braucht mehr Bauraum und Gewicht – was die mögliche Reichweite leicht begrenzt.</p>`},reichweite:{tag:"Technik · Reichweite",title:"~250 km Reichweite: Realistisch?",body:`<p>Die <strong>~250 km</strong> sind ein realistischer Alltagswert – nicht der optimistische WLTP-Laborwert wie bei Neuwagen.</p><div class="modal-divider"></div><p>Einflussfaktoren:</p><ul><li><strong>Fahrprofil:</strong> Autobahn reduziert, Stadt erhöht die Reichweite</li><li><strong>Temperatur:</strong> LFP leidet weniger unter Kälte als NMC</li><li><strong>Ladezustand:</strong> 20–80 % empfohlen für Langlebigkeit</li><li><strong>Rekuperation:</strong> Bremsen erzeugt Energie zurück</li></ul><div class="modal-stat-row"><div class="modal-stat"><div class="modal-stat-val">~250 km</div><div class="modal-stat-lbl">Alltag</div></div><div class="modal-stat"><div class="modal-stat-val">~180 km</div><div class="modal-stat-lbl">Autobahn</div></div><div class="modal-stat"><div class="modal-stat-val">~300 km</div><div class="modal-stat-lbl">Stadt optimal</div></div></div>`},umbauzeit:{tag:"Technik · Umbauzeit",title:"Umbau in einem Tag – wie geht das?",body:`<p>Dank des <strong>Plug-and-Play-Konzepts</strong> dauert der Umbau nur einen Werktag – frühere individuelle Lösungen brauchten Wochen.</p><div class="modal-divider"></div><p><strong>Ablauf des Umbautages:</strong></p><ul><li>Ausbau Verbrennungsmotor, Getriebe, Tank, Abgasanlage</li><li>Einbau E-Motor an bestehenden Antriebsstrang</li><li>Einbau Batteriepakete in Mitteltunnel und Kofferraum</li><li>Installation Wechselrichter und BMS</li><li>Integration in Fahrzeugelektronik / CAN-Bus</li><li>Funktionstest, Kalibrierung, Übergabe</li></ul><div class="modal-quote">Der Schlüssel ist die Vorfertigung: Alle Komponenten sind auf den Golf 7 abgestimmt und werden als fertiges Kit geliefert.</div>`},lfp:{tag:"Technik · Batteriechemie",title:"LFP vs. NMC: Der Technologievergleich",body:`<p>Im Podcast wird die bewusste Entscheidung für <strong>LFP</strong> statt <strong>NMC</strong> erläutert.</p><div class="modal-divider"></div><table class="modal-table"><tr><th>Merkmal</th><th style="color:var(--green)">LFP</th><th style="color:var(--amber)">NMC</th></tr><tr><td>Energiedichte</td><td>Mittel</td><td style="color:var(--green)">Hoch</td></tr><tr><td>Lebensdauer</td><td style="color:var(--green)">Sehr lang</td><td>Mittel</td></tr><tr><td>Sicherheit</td><td style="color:var(--green)">Sehr hoch</td><td>Hoch</td></tr><tr><td>Kobalt-frei</td><td style="color:var(--green)">Ja ✓</td><td style="color:var(--red)">Nein ✗</td></tr><tr><td>Preis/kWh</td><td style="color:var(--green)">Günstiger</td><td>Teurer</td></tr></table>`},komponenten:{tag:"Technik · Komponenten",title:"Die Kernkomponenten des Retrofit-Kits",body:`<p>Das e-Revolt-System besteht aus vier aufeinander abgestimmten Hauptkomponenten:</p><ul><li><strong>Elektromotor:</strong> Ersetzt den Verbrenner, koppelt an das vorhandene Getriebe</li><li><strong>Inverter / Wechselrichter:</strong> Wandelt Gleichstrom der Batterie in Wechselstrom für den Motor</li><li><strong>Batterie-Management-System (BMS):</strong> Überwacht Ladezustand, Temperatur und Zellbalancing</li><li><strong>Batteriepakete (45 kWh LFP):</strong> Verteilt auf Mitteltunnel und Kofferraum</li></ul><div class="modal-divider"></div><p>Hinzu kommen: Ladeanschluss (AC/DC), Rekuperationssystem, elektrische Klimaanlage und Hochvolt-Sicherheitssystem.</p>`},crash:{tag:"Technik · Sicherheit",title:"Crashsicherheit der Batterie",body:`<p>Die Batteriepositionierung ist eine der größten sicherheitstechnischen Herausforderungen. Anders als Neuwagen, die von Grund auf für eine Bodenbatterie gebaut sind, muss beim Retrofit vorhandener Bauraum genutzt werden.</p><div class="modal-divider"></div><p><strong>e-Revolt's Lösung beim Golf 7:</strong></p><ul><li>Hauptbatterie im <strong>Mitteltunnel</strong> (geschützte Zone bei Seitencrash)</li><li>Zusatzmodule im <strong>Kofferraum</strong> (strukturell verstärkter Bereich)</li><li>Schutzrahmen und Deformationszonen um die Module</li><li>Automatische Hochvolt-Abschaltung bei Airbag-Auslösung</li></ul><div class="modal-quote">Die TÜV-Zulassung schließt explizit Crashtests ein – das System hat diese bestanden.</div>`},canbus:{tag:"Technik · Elektronik",title:"CAN-Bus Integration: Die versteckte Komplexität",body:`<p>Moderne Fahrzeuge wie der Golf 7 haben über <strong>70 Steuergeräte</strong>, die über den CAN-Bus kommunizieren. Der E-Motor muss sich nahtlos einpassen:</p><ul><li>Tacho zeigt weiterhin korrekte Geschwindigkeit</li><li>ABS und ESP funktionieren mit dem neuen Antrieb</li><li>Klimaanlage wird elektrisch angetrieben (kein Riemenantrieb mehr)</li><li>Fehlercodes für den entfernten Verbrenner werden unterdrückt</li><li>Ladestand wird korrekt im Cockpit angezeigt</li></ul><div class="modal-divider"></div><div class="modal-quote">Das ist der Grund, warum Retrofit-Kits modellspezifisch entwickelt werden müssen – jede Fahrzeugplattform hat ein anderes CAN-Bus-System.</div>`},"kosten-retrofit":{tag:"Wirtschaftlichkeit · Retrofit",title:"Vollkostenrechnung: Retrofit",body:`<p>Die Gesamtinvestition setzt sich zusammen aus dem Fahrzeugwert und den Umbaukosten.</p><div class="modal-stat-row"><div class="modal-stat"><div class="modal-stat-val">12–15k €</div><div class="modal-stat-lbl">Umbaukosten (e-Revolt)</div></div><div class="modal-stat"><div class="modal-stat-val">3–8k €</div><div class="modal-stat-lbl">Golf 7 Marktwert</div></div><div class="modal-stat"><div class="modal-stat-val">~23k €</div><div class="modal-stat-lbl">Max. Gesamtkosten</div></div></div><div class="modal-divider"></div><p><strong>Laufende Einsparungen:</strong></p><ul><li>Strom statt Benzin: ca. 3–4 ct/km statt 10–12 ct/km</li><li>Weniger Wartung: kein Ölwechsel, kein Auspuff, weniger Bremsverschleiß</li><li>KFZ-Steuer: Elektrofahrzeuge zahlen deutlich weniger</li></ul><div class="modal-quote">Bei 15.000 km/Jahr liegt die Betriebsersparnis gegenüber einem Benziner bei etwa 1.000–1.500 € pro Jahr.</div>`},"kosten-neu":{tag:"Wirtschaftlichkeit · Neuwagen",title:"Neues E-Auto: Die versteckten Kosten",body:`<p>Ein neues E-Auto kostet in der Anschaffung deutlich mehr als ein Retrofit. Seit dem Wegfall der E-Auto-Prämie in Deutschland hat sich die Nachfrage abgekühlt.</p><div class="modal-stat-row"><div class="modal-stat"><div class="modal-stat-val">ab 25k €</div><div class="modal-stat-lbl">Einstieg (z.B. Dacia Spring)</div></div><div class="modal-stat"><div class="modal-stat-val">35–50k €</div><div class="modal-stat-lbl">Mittelklasse (ID.3, Ioniq 6)</div></div></div><div class="modal-divider"></div><p><strong>Zusätzlich zu bedenken:</strong></p><ul><li>Hohe Abschreibung in den ersten Jahren</li><li>CO₂-Schuld durch Neuproduktion muss erst abgefahren werden</li><li>In Deutschland 2026 kaum noch staatliche Förderung</li><li>Neue Batterie = neuer Rohstoffverbrauch (Lithium, Kobalt, Nickel)</li></ul>`},"co2-retrofit":{tag:"Nachhaltigkeit · Retrofit",title:"CO₂-Bilanz: Retrofit im Detail",body:`<p>Der Retrofit schlägt beim CO₂ besonders stark, weil die <strong>Herstellungsemissionen</strong> eines neuen Fahrzeugs fast vollständig entfallen.</p><div class="modal-divider"></div><p>Was beim Retrofit neu produziert wird:</p><ul><li>45-kWh-LFP-Batterie: ca. <strong>5–7 Tonnen CO₂</strong></li><li>E-Motor und Inverter: ca. <strong>0,5–1 Tonne CO₂</strong></li></ul><div class="modal-divider"></div><p>Vergleich: Ein komplett neues E-Auto verursacht in der Produktion <strong>15–25 Tonnen CO₂</strong>. Der Retrofit startet also mit einem riesigen Vorsprung.</p>`},"co2-neu":{tag:"Nachhaltigkeit · Neues E-Auto",title:"CO₂-Bilanz: Neues E-Auto",body:`<p>Neue Elektroautos sind im Betrieb emissionsfrei – aber ihre <strong>Produktion</strong> ist CO₂-intensiv. Besonders die Batterieherstellung ist problematisch.</p><div class="modal-stat-row"><div class="modal-stat"><div class="modal-stat-val">8–12 t</div><div class="modal-stat-lbl">CO₂ für 60-kWh-Batterie</div></div><div class="modal-stat"><div class="modal-stat-val">15–25 t</div><div class="modal-stat-lbl">CO₂ Gesamtproduktion</div></div></div><div class="modal-divider"></div><p>Ein neues E-Auto muss zunächst seine <strong>„CO₂-Schuld"</strong> aus der Produktion abfahren, bevor es klimatechnisch besser dasteht als ein Verbrenner. Je nach Strommix dauert das <strong>2–4 Jahre</strong>.</p>`},"co2-verbrenner":{tag:"Nachhaltigkeit · Verbrenner",title:"CO₂-Bilanz: Verbrenner als Referenz",body:`<p>Der neue Verbrenner dient als <strong>Referenzwert (100%)</strong>. Er ist in jeder Phase problematisch:</p><ul><li><strong>Produktion:</strong> Ähnliche Emissionen wie E-Auto-Herstellung</li><li><strong>Betrieb:</strong> Kontinuierliche CO₂-Emissionen über die gesamte Nutzungsdauer</li><li><strong>Kraftstoff:</strong> Förderung, Transport, Raffination verursachen Zusatzemissionen</li></ul><div class="modal-divider"></div><p>In Deutschland emittiert ein Mittelklasse-Benziner etwa <strong>130–160 g CO₂/km</strong>. Bei 15.000 km/Jahr sind das fast <strong>2 Tonnen CO₂ pro Jahr</strong> allein durch den Fahrbetrieb.</p>`},"graue-energie":{tag:"Nachhaltigkeit · Konzept",title:"Graue Energie: Was steckt dahinter?",body:`<p><strong>Graue Energie</strong> bezeichnet die gesamte Energie, die für Herstellung, Transport und Entsorgung eines Produkts aufgewendet wird – alles vor und nach der Nutzung.</p><div class="modal-divider"></div><p>Bei einem Fahrzeug: Stahl schmelzen, Karosserie formen, lackieren, montieren, transportieren – all das verbraucht Energie und erzeugt CO₂.</p><div class="modal-divider"></div><p>Beim Retrofit wird diese bereits verbrauchte Energie <strong>weiter genutzt</strong> statt verschrottet. Das Fahrzeug bekommt ein zweites Leben.</p><div class="modal-quote">Ein Auto, das bereits gebaut wurde, war schon ressourcenintensiv. Wenn es noch fahrtüchtig ist, sollte man es nicht wegwerfen.</div>`},strommix:{tag:"Nachhaltigkeit · Strom",title:"Der Strommix als entscheidender Faktor",body:`<p>Die CO₂-Bilanz im Betrieb hängt direkt davon ab, <strong>woher der Strom kommt</strong>. Das gilt für Retrofit genauso wie für neue E-Autos.</p><div class="modal-stat-row"><div class="modal-stat"><div class="modal-stat-val">~0 g/km</div><div class="modal-stat-lbl">100% Ökostrom</div></div><div class="modal-stat"><div class="modal-stat-val">~50 g/km</div><div class="modal-stat-lbl">DE-Strommix 2026</div></div><div class="modal-stat"><div class="modal-stat-val">~140 g/km</div><div class="modal-stat-lbl">Kohle-Strom</div></div></div><div class="modal-divider"></div><p>Da der Retrofit-Golf keine Neuproduktions-CO₂-Schuld hat, profitiert er sofort von einem grüneren Strommix – während ein Neuwagen erst aufholen muss.</p>`},fraunhofer:{tag:"Nachhaltigkeit · Forschung",title:"Fraunhofer ISI: Die wissenschaftliche Basis",body:`<p><strong>Dr. Michael Krail</strong> vom <strong>Fraunhofer-Institut für System- und Innovationsforschung (ISI)</strong> in Karlsruhe ist Podcast-Gast. Das ISI ist eine führende Forschungseinrichtung für Energie- und Mobilitätswende.</p><div class="modal-divider"></div><p>Seine zentralen Aussagen im Podcast:</p><ul><li>Retrofit schneidet in der <strong>Lebenszyklusanalyse</strong> besser ab als ein Neuwagen</li><li>Der entscheidende Faktor ist die <strong>vermiedene Neuproduktion</strong></li><li>Mit mehr erneuerbaren Energien wird Retrofit noch vorteilhafter</li><li>Skalierung wäre nötig, um die gesellschaftliche Wirkung zu erhöhen</li></ul>`},elektronik:{tag:"Herausforderung · Elektronik",title:"Fahrzeugelektronik: Die komplexeste Herausforderung",body:`<p>Moderne Fahrzeuge wie der Golf 7 haben über <strong>70 Steuergeräte</strong>, die über CAN-Bus kommunizieren. Der Einbau eines anderen Antriebsstrangs muss sich in dieses Netzwerk einpassen.</p><div class="modal-divider"></div><p><strong>Konkrete Probleme:</strong></p><ul><li>Das Motorsteuergerät (ECU) erwartet Signale, die der E-Motor nicht liefert</li><li>Fehlercodes für den entfernten Verbrenner müssen unterdrückt werden</li><li>Klimaanlage, Servolenkung und Bremskraftverstärker brauchen eigene E-Antriebe</li><li>Jede neue Fahrzeuggeneration hat ein anderes System</li></ul>`},zulassung:{tag:"Herausforderung · TÜV",title:"TÜV & Zulassung: Der steinige Weg",body:`<p>In Deutschland und der EU gibt es keine vereinfachten Genehmigungswege für Fahrzeugumbauten dieser Art – jede Lösung muss separat zugelassen werden.</p><div class="modal-divider"></div><p><strong>Was die Zulassung erfordert:</strong></p><ul><li>Vollständige technische Dokumentation aller Änderungen</li><li>Crashtest-Nachweise für die Batterie-Einbauposition</li><li>EMV-Tests (elektromagnetische Verträglichkeit)</li><li>Nachweis der Hochvolt-Sicherheitssysteme</li><li>Abnahme durch einen anerkannten Prüfdienst (TÜV, DEKRA)</li></ul><div class="modal-quote">Der Zulassungsprozess dauert Jahre und kostet Hunderttausende Euro – das können nur gut finanzierte Unternehmen stemmen.</div>`},crashsicherheit:{tag:"Herausforderung · Sicherheit",title:"Crashsicherheit: Batterie im Crash",body:`<p>Eine beschädigte Lithium-Batterie kann in Brand geraten (<strong>Thermal Runaway</strong>). Bei LFP ist dieses Risiko geringer als bei NMC, aber nicht null.</p><div class="modal-divider"></div><p><strong>Herausforderungen beim Retrofit:</strong></p><ul><li>Der Golf 7 wurde nicht für eine Bodenbatterie konstruiert</li><li>Die Batterie muss in Crashzonen eingebaut werden</li><li>Rettungskräfte müssen das Fahrzeug sicher öffnen können</li><li>Hochvolt-Kennzeichnung und Rettungsdatenblatt sind Pflicht</li></ul><div class="modal-divider"></div><p>e-Revolt hat dies durch strukturelle Verstärkungen und Platzierung in Mitteltunnel und Kofferraum gelöst – TÜV-bestätigt.</p>`},skalierung:{tag:"Herausforderung · Markt",title:"Skalierung: Warum Retrofit noch nischig ist",body:`<p>Trotz überzeugender Technologie ist Retrofit bisher ein kleiner Nischenmarkt. Die Gründe sind strukturell:</p><ul><li><strong>Entwicklungskosten</strong> für jede Fahrzeugreihe sind hoch</li><li><strong>Werkstattnetz</strong> fehlt – kaum zertifizierte Betriebe</li><li><strong>Bewusstsein</strong> fehlt – die meisten kennen Retrofit nicht</li><li><strong>Förderung</strong> fehlt – Staat fördert Neuwagen, nicht Umrüstung</li></ul><div class="modal-divider"></div><div class="modal-quote">Wenn der Staat 1/3 der Umbaukosten fördern würde wie früher beim E-Auto-Kauf, würde sich Retrofit für viel mehr Menschen rechnen.</div>`},"fazit-co2":{tag:"Fazit · Ökologie",title:"CO₂-Urteil: Klares Ja für Retrofit",body:`<p>In der ökologischen Bilanz ist Retrofit der klare Gewinner – sowohl gegenüber einem neuen E-Auto als auch einem neuen Verbrenner.</p><div class="modal-divider"></div><p><strong>Warum Retrofit CO₂-mäßig überzeugt:</strong></p><ul><li>Keine Neuproduktion von Karosserie und Fahrwerk spart 10–15 Tonnen CO₂</li><li>LFP-Batterie ist kobaltfrei mit geringen Produktionsemissionen</li><li>Sofortiger Vorteil ohne CO₂-Schulden aus Neuproduktion</li><li>Mit grünem Strom nahezu klimaneutral im Betrieb</li></ul><div class="modal-quote">Fraunhofer ISI bestätigt: In der Lebenszyklusbetrachtung ist Retrofit ökologisch überlegen – das ist der stärkste Trumpf dieses Konzepts.</div>`},"fazit-kosten":{tag:"Fazit · Wirtschaft",title:"Kosten-Urteil: Bedingt empfehlenswert",body:`<p>Die Wirtschaftlichkeit ist differenzierter. Retrofit ist günstiger als ein neues E-Auto, aber 12.000–15.000 € Umbaukosten sind kein Schnäppchen.</p><div class="modal-divider"></div><p><strong>Für wen rechnet sich's?</strong></p><ul><li>Wer seinen Golf 7 noch 5–8 Jahre weiterfahren möchte</li><li>Wer jährlich 10.000–20.000 km fährt</li><li>Wer Zugang zu günstigem Strom hat (Photovoltaik, Nachttarif)</li></ul><div class="modal-divider"></div><p><strong>Für wen eher nicht?</strong></p><ul><li>Wer das Fahrzeug bald verkaufen möchte (Restwert unklar)</li><li>Wer täglich über 250 km fährt</li><li>Wer ein Fahrzeug mit schlechtem Allgemeinzustand hat</li></ul>`},"fazit-technik":{tag:"Fazit · Technologie",title:"Technik-Urteil: Ausgereift – mit Einschränkungen",body:`<p>Das e-Revolt-System ist <strong>technisch ausgereift</strong> und hat den TÜV bestanden. Für den Alltagseinsatz bis ~250 km vollständig tauglich.</p><div class="modal-divider"></div><p><strong>Stärken:</strong></p><ul><li>TÜV-zugelassen und straßentauglich</li><li>LFP-Batterie: langlebig und sicher</li><li>Vollständige Integration in Golf-7-Elektronik</li><li>Umbau in nur einem Tag</li></ul><div class="modal-divider"></div><p><strong>Einschränkungen:</strong></p><ul><li>250 km Reichweite – für Langstrecke zu wenig</li><li>Aktuell nur für Golf 7 verfügbar</li><li>Wenig zertifizierte Werkstätten deutschlandweit</li></ul>`}};
+
+const slides=document.querySelectorAll('.slide');
+const btnPrev=document.getElementById('btn-prev');
+const btnNext=document.getElementById('btn-next');
+const counter=document.getElementById('slide-counter');
+const slideNum=document.getElementById('slide-num');
+const progressBar=document.getElementById('progress-bar');
+const total=slides.length;
+let current=0;
+
+function goTo(n){
+  if(n<0||n>=total)return;
+  slides[current].classList.remove('active');
+  slides[current].classList.add('exit');
+  const prev=current;current=n;
+  setTimeout(()=>slides[prev].classList.remove('exit'),500);
+  slides[current].classList.add('active');
+  if(current===4){
+    setTimeout(()=>{
+      document.querySelectorAll('.co2-bar-fill').forEach(b=>{const w=b.style.width;b.style.width='0';setTimeout(()=>b.style.width=w,50)});
+    },200);
+  }
+  counter.textContent=`${current+1} / ${total}`;
+  slideNum.textContent=`${String(current+1).padStart(2,'0')} / ${String(total).padStart(2,'0')}`;
+  progressBar.style.width=`${((current+1)/total)*100}%`;
+  btnPrev.disabled=current===0;
+  btnNext.disabled=current===total-1;
+}
+
+btnNext.addEventListener('click',()=>goTo(current+1));
+btnPrev.addEventListener('click',()=>goTo(current-1));
+
+// Swipe support
+let touchStartX=0;
+document.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX},{passive:true});
+document.addEventListener('touchend',e=>{
+  if(modalOverlay.classList.contains('open'))return;
+  const dx=e.changedTouches[0].clientX-touchStartX;
+  if(Math.abs(dx)>50){dx<0?goTo(current+1):goTo(current-1)}
+},{passive:true});
+
+const modalOverlay=document.getElementById('modal-overlay');
+const modalClose=document.getElementById('modal-close');
+const modalTag=document.getElementById('modal-tag');
+const modalTitle=document.getElementById('modal-title');
+const modalBody=document.getElementById('modal-body');
+
+function openModal(key){
+  const d=MODALS[key];if(!d)return;
+  modalTag.textContent=d.tag;
+  modalTitle.textContent=d.title;
+  modalBody.innerHTML=d.body;
+  modalOverlay.classList.add('open');
+  document.getElementById('modal-box').scrollTop=0;
+}
+function closeModal(){modalOverlay.classList.remove('open')}
+
+document.querySelectorAll('.clickable').forEach(el=>{
+  el.addEventListener('click',()=>openModal(el.dataset.modal));
+});
+modalClose.addEventListener('click',closeModal);
+modalOverlay.addEventListener('click',e=>{if(e.target===modalOverlay)closeModal()});
+document.addEventListener('keydown',e=>{
+  if(modalOverlay.classList.contains('open')){if(e.key==='Escape')closeModal();return}
+  if(e.key==='ArrowRight'||e.key==='ArrowDown')goTo(current+1);
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp')goTo(current-1);
+});
+goTo(0);
+</script>
+</body>
+</html>
